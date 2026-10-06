@@ -5,7 +5,7 @@ A super simple FastAPI application that allows students to view and sign up
 for extracurricular activities at Mergington High School.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 import os
@@ -38,6 +38,42 @@ activities = {
         "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
         "max_participants": 30,
         "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+    },
+    "Athletic Team": {
+        "description": "Build strength, endurance, and teamwork through team sports",
+        "schedule": "Wednesdays, 3:30 PM - 5:00 PM",
+        "max_participants": 20,
+        "participants": ["liam@mergington.edu", "sara@mergington.edu"]
+    },
+    "Outdoor Fitness": {
+        "description": "Explore fitness activities and healthy habits outdoors",
+        "schedule": "Saturdays, 9:00 AM - 10:30 AM",
+        "max_participants": 18,
+        "participants": ["noah@mergington.edu", "maya@mergington.edu"]
+    },
+    "Art Studio": {
+        "description": "Create paintings and develop visual art skills",
+        "schedule": "Tuesdays, 3:30 PM - 5:00 PM",
+        "max_participants": 15,
+        "participants": ["ava@mergington.edu", "lucas@mergington.edu"]
+    },
+    "Music Ensemble": {
+        "description": "Practice instruments and perform as part of an ensemble",
+        "schedule": "Thursdays, 4:00 PM - 5:30 PM",
+        "max_participants": 20,
+        "participants": ["isla@mergington.edu", "leo@mergington.edu"]
+    },
+    "Science Lab": {
+        "description": "Explore scientific questions through experiments and projects",
+        "schedule": "Mondays, 3:30 PM - 5:00 PM",
+        "max_participants": 18,
+        "participants": ["ben@mergington.edu", "grace@mergington.edu"]
+    },
+    "Book Club": {
+        "description": "Discuss literature and explore ideas through reading",
+        "schedule": "Fridays, 4:00 PM - 5:00 PM",
+        "max_participants": 15,
+        "participants": ["chloe@mergington.edu", "owen@mergington.edu"]
     }
 }
 
@@ -53,8 +89,10 @@ def get_activities():
 
 
 @app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, email: str):
-    """Sign up a student for an activity"""
+def signup_for_activity(
+    activity_name: str, email: str = Query(..., description="Student email address")
+):
+    """Sign up a student for an activity."""
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
@@ -62,6 +100,22 @@ def signup_for_activity(activity_name: str, email: str):
     # Get the specific activity
     activity = activities[activity_name]
 
-    # Add student
+    # Validate student is not already signed up
+    if email in activity["participants"]:
+        raise HTTPException(
+            status_code=409,
+            detail="Student is already registered for this activity",
+        )
+
+    # Validate the activity is not full
+    if len(activity["participants"]) >= activity["max_participants"]:
+        raise HTTPException(status_code=400, detail="Activity is full")
+
     activity["participants"].append(email)
     return {"message": f"Signed up {email} for {activity_name}"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
